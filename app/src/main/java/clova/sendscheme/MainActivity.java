@@ -1,21 +1,17 @@
 package clova.sendscheme;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,40 +21,37 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import org.apache.commons.codec.binary.Base64;
+
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     BluetoothAdapter bluetoothAdapter;
     BluetoothSocket bluetoothSocket;
+
+    public int checkSelfPermission(final String permission) {
+        return ((getPackageManager().checkPermission(permission, getPackageName()) == PackageManager.PERMISSION_GRANTED) ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (checkSelfPermission(android.Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED &&
-                checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
         } else {
-            requestPermissions(new String[]{android.Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_ADMIN, android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 10);
+            requestPermissions(new String[]{Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 10);
         }
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (bluetoothAdapter == null) {
-            // Bluetoothがサポートされていない場合の処理
-            finish();
-            Toast.makeText(this, "Bluetoothがサポートされていません。", Toast.LENGTH_SHORT).show();
-        }
 
         if (!bluetoothAdapter.isEnabled()) {
             // Bluetoothが無効化されている場合は有効化する
@@ -77,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
                 registerReceiver(clovaBTBroadcastReceiver, intentFilter);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                         Toast.makeText(MainActivity.this, "権限がありません。", Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -122,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 alertDialog.setView(editText);
                 alertDialog.setPositiveButton("Send", (id, dialog) -> {
                     String inputScheme = editText.getText().toString();
-                    byte[] bytes = org.apache.commons.codec.binary.Base64.encodeBase64(inputScheme.getBytes());
+                    byte[] bytes = Base64.encodeBase64(inputScheme.getBytes());
                     byte[] bArr = new byte[bytes.length + 8];
                     bArr[0] = 65;
                     bArr[1] = 80;
@@ -172,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
             this.bluetoothDevice = bluetoothDevice;
         }
 
+        @SuppressLint("MissingPermission")
         @Override
         public void run() {
             try {
@@ -204,14 +198,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class ClovaBTBroadcastReceiver extends BroadcastReceiver {
+        @SuppressLint("MissingPermission")
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent.getParcelableExtra(
                         BluetoothDevice.EXTRA_DEVICE);
-                Log.d("aihed", device.getName() + ": " + String.valueOf(device.getType()));
+                Log.d("aihed", device.getName() + ": " + device.getType());
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
                 }
