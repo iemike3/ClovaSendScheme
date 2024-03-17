@@ -9,3 +9,4 @@
 # Android Studio Signing APK
 /app/debug/
 /app/release/
+/app/release.jks
